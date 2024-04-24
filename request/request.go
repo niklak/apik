@@ -3,6 +3,7 @@ package request
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -42,6 +43,8 @@ func (f *FileFieldData) Write(w *multipart.Writer) (err error) {
 		_, err = part.Write(v)
 	case io.Reader:
 		_, err = io.Copy(part, v)
+	default:
+		err = fmt.Errorf("%w: %T", ErrUnsupportedBodyType, f.Body)
 	}
 	return
 }
@@ -71,12 +74,16 @@ func (r *Request) IntoHttpRequest() (req *http.Request, err error) {
 		buf := new(bytes.Buffer)
 		writer := multipart.NewWriter(buf)
 		for _, file := range r.Files {
-			file.Write(writer)
+			if err = file.Write(writer); err != nil {
+				return
+			}
 		}
 
 		for key, values := range r.Form {
 			for _, value := range values {
-				writer.WriteField(key, value)
+				if err = writer.WriteField(key, value); err != nil {
+					return
+				}
 			}
 		}
 		if err = writer.Close(); err != nil {

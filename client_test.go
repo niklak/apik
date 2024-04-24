@@ -39,29 +39,7 @@ func TestClient_Fetch(t *testing.T) {
 	assert.Contains(t, result, "https://httpbin.org/get")
 }
 
-func TestClient_JSON(t *testing.T) {
-
-	type httpBinResponse struct {
-		URL string `json:"url"`
-	}
-
-	client := New(WithBaseUrl("https://httpbin.org"))
-
-	req := request.NewRequest(
-		context.Background(),
-		"/post",
-		request.Method("POST"),
-	)
-
-	result := new(httpBinResponse)
-	resp, err := client.JSON(req, result)
-
-	assert.NoError(t, err)
-	assert.Equal(t, 200, resp.Raw.StatusCode)
-	assert.Equal(t, "https://httpbin.org/post", result.URL)
-}
-
-func TestClient_JSONResp(t *testing.T) {
+func TestClient_JSONResponse(t *testing.T) {
 
 	type httpBinResponse struct {
 		URL string `json:"url"`
@@ -149,4 +127,25 @@ func TestClient_Files(t *testing.T) {
 
 	expectedForm := map[string]string{"k": "v"}
 	assert.Equal(t, expectedForm, result.Form)
+}
+
+func TestClient_Files_UnsupportedBodyType(t *testing.T) {
+
+	type httpBinResponse struct {
+		URL string `json:"url"`
+	}
+
+	client := New(WithBaseUrl("https://httpbin.org"))
+
+	req := request.NewRequest(
+		context.Background(),
+		"/post",
+		request.Method("POST"),
+		request.SetFileBody("file_0", "file_0.txt", 1),
+	)
+
+	result := new(httpBinResponse)
+	_, err := client.JSON(req, result)
+	assert.ErrorIs(t, err, request.ErrUnsupportedBodyType)
+
 }
