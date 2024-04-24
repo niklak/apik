@@ -1,6 +1,9 @@
 package apik
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -14,6 +17,11 @@ import (
 
 var defaultTimeout = time.Minute
 
+type Response struct {
+	Raw    *http.Response
+	Result any
+}
+
 type Client struct {
 	c       *http.Client
 	timeout time.Duration
@@ -24,7 +32,7 @@ type Client struct {
 	baseURL *url.URL
 }
 
-func (c *Client) Do(req *request.Request) (res *http.Response, err error) {
+func (c *Client) Do(req *request.Request) (resp *http.Response, err error) {
 
 	if c.baseURL != nil {
 		req.URL = c.baseURL.ResolveReference(req.URL)
@@ -38,8 +46,56 @@ func (c *Client) Do(req *request.Request) (res *http.Response, err error) {
 	return c.c.Do(rawReq)
 }
 
+func (c *Client) Fetch(req *request.Request, result any) (resp *Response, err error) {
+	var rawResp *http.Response
+	if rawResp, err = c.Do(req); err != nil {
+		return
+	}
+
+	defer rawResp.Body.Close()
+	resp = &Response{Raw: rawResp}
+
+	if result == nil {
+		result = new(bytes.Buffer)
+	}
+
+	switch v := result.(type) {
+	case io.Writer:
+		_, err = io.Copy(v, rawResp.Body)
+	case *[]byte:
+		*v, err = io.ReadAll(rawResp.Body)
+	case *string:
+		var b []byte
+		b, err = io.ReadAll(rawResp.Body)
+		*v = string(b)
+	}
+	resp.Result = result
+
+	return
+}
+
+func (c *Client) JSON(req *request.Request, result any) (resp *Response, err error) {
+	var rawResp *http.Response
+	if rawResp, err = c.Do(req); err != nil {
+		return
+	}
+
+	defer rawResp.Body.Close()
+	resp = &Response{Raw: rawResp}
+
+	if result == nil {
+		return
+	}
+	err = json.NewDecoder(rawResp.Body).Decode(result)
+	if err != nil {
+		return
+	}
+	resp.Result = result
+	return
+}
+
 func New(opts ...ClientOption) *Client {
-	cookieJar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+
 	c := &Client{
 		header: make(http.Header),
 	}
@@ -49,14 +105,17 @@ func New(opts ...ClientOption) *Client {
 	}
 
 	if c.c == nil {
-		c.c = &http.Client{
-			Jar: cookieJar,
-		}
+		c.c = &http.Client{}
 	}
 
 	if c.timeout == 0 {
 		c.timeout = defaultTimeout
 		c.c.Timeout = c.timeout
+	}
+
+	if c.c.Jar == nil {
+		cookieJar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+		c.c.Jar = cookieJar
 	}
 
 	c.logger = log.With().Str("module", "apik").Str("component", "Client").Logger()
