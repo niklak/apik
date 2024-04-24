@@ -7,6 +7,8 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -18,6 +20,17 @@ type FileFieldData struct {
 }
 
 func (f *FileFieldData) Write(w *multipart.Writer) (err error) {
+
+	if f.Source != "" {
+		body, err := os.ReadFile(f.Source)
+		if err != nil {
+			return err
+		}
+		f.Body = body
+
+		f.Filename = filepath.Base(f.Source)
+	}
+
 	part, err := w.CreateFormFile(f.Fieldname, f.Filename)
 	if err != nil {
 		return

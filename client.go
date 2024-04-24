@@ -9,10 +9,11 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/niklak/apik/request"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/net/publicsuffix"
+
+	"github.com/niklak/apik/request"
 )
 
 var defaultTimeout = time.Minute

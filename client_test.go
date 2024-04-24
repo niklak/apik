@@ -3,6 +3,7 @@ package apik
 import (
 	"context"
 	"io"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -109,4 +110,43 @@ func TestClient_QueryParams(t *testing.T) {
 	}
 	assert.Equal(t, expectedArgs, result.Args)
 	assert.Equal(t, "https://httpbin.org/get?k=v1&k=v2", result.URL)
+}
+
+func TestClient_Files(t *testing.T) {
+
+	type httpBinResponse struct {
+		URL   string            `json:"url"`
+		Files map[string]string `json:"files"`
+		Form  map[string]string `json:"form"`
+	}
+
+	client := New(WithBaseUrl("https://httpbin.org"))
+
+	req := request.NewRequest(
+		context.Background(),
+		"/post",
+		request.Method("POST"),
+		request.SetFileBody("file_0", "file_0.txt", []byte("test content")),
+		request.SetFileBody("file_1", "file_1.txt", "test content"),
+		request.SetFileBody("file_2", "file_2.txt", strings.NewReader("test content")),
+		request.SetFile("file_3", "test_data/test.txt"),
+		request.AddFormField("k", "v"),
+	)
+
+	result := new(httpBinResponse)
+	resp, err := client.JSON(req, result)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 200, resp.Raw.StatusCode)
+
+	expectedFiles := map[string]string{
+		"file_0": "test content",
+		"file_1": "test content",
+		"file_2": "test content",
+		"file_3": "test content",
+	}
+	assert.Equal(t, expectedFiles, result.Files)
+
+	expectedForm := map[string]string{"k": "v"}
+	assert.Equal(t, expectedForm, result.Form)
 }
