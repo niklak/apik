@@ -19,8 +19,9 @@ import (
 var defaultTimeout = time.Minute
 
 type Response struct {
-	Raw    *http.Response
-	Result any
+	Raw     *http.Response
+	Result  any
+	Request *request.Request
 }
 
 type Client struct {
@@ -39,10 +40,13 @@ func (c *Client) Do(req *request.Request) (resp *http.Response, err error) {
 		req.URL = c.baseURL.ResolveReference(req.URL)
 	}
 
+	if c.trace {
+		request.Trace()(req)
+	}
+
 	var rawReq *http.Request
 	if rawReq, err = req.IntoHttpRequest(); err != nil {
 		return
-
 	}
 	return c.c.Do(rawReq)
 }

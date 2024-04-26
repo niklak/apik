@@ -50,15 +50,21 @@ func (f *FileFieldData) Write(w *multipart.Writer) (err error) {
 }
 
 type Request struct {
-	Ctx     context.Context
-	Method  string
-	Header  http.Header
-	Body    []byte
-	Form    url.Values
-	Params  url.Values
-	Files   []*FileFieldData
-	Cookies []*http.Cookie
-	URL     *url.URL
+	Ctx       context.Context
+	Method    string
+	Header    http.Header
+	Body      []byte
+	Form      url.Values
+	Params    url.Values
+	Files     []*FileFieldData
+	Cookies   []*http.Cookie
+	URL       *url.URL
+	trace     bool
+	traceInfo *TraceInfo
+}
+
+func (r *Request) TraceInfo() *TraceInfo {
+	return r.traceInfo
 }
 
 func (r *Request) IntoHttpRequest() (req *http.Request, err error) {
@@ -101,6 +107,12 @@ func (r *Request) IntoHttpRequest() (req *http.Request, err error) {
 	req, err = http.NewRequestWithContext(r.Ctx, r.Method, r.URL.String(), body)
 	if err != nil {
 		return
+	}
+
+	if r.trace {
+		info, ctx := createTraceContext(req.Context())
+		r.traceInfo = info
+		req = req.WithContext(ctx)
 	}
 
 	if len(r.Header) > 0 {
@@ -214,5 +226,11 @@ func SetFileBody(fieldname, filename string, body any) RequestOption {
 			Filename:  filename,
 			Body:      body,
 		})
+	}
+}
+
+func Trace() RequestOption {
+	return func(r *Request) {
+		r.trace = true
 	}
 }

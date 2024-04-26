@@ -3,11 +3,16 @@ package apik
 import (
 	"context"
 	"io"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/niklak/apik/internal/proxy"
 	"github.com/niklak/apik/request"
 )
 
@@ -147,5 +152,60 @@ func TestClient_Files_UnsupportedBodyType(t *testing.T) {
 	result := new(httpBinResponse)
 	_, err := client.JSON(req, result)
 	assert.ErrorIs(t, err, request.ErrUnsupportedBodyType)
+
+}
+
+func TestClient_TraceProxy(t *testing.T) {
+
+	// Start a test server that will act as a proxy
+	testServer := httptest.NewServer(http.HandlerFunc(proxy.ProxyConnectHandler))
+
+	defer testServer.Close()
+
+	u, err := url.Parse(testServer.URL)
+	assert.NoError(t, err)
+
+	// Create an http client with a proxy
+
+	httpClient := &http.Client{
+		Transport: &http.Transport{Proxy: http.ProxyURL(u)},
+		Timeout:   10 * time.Second,
+	}
+
+	// Using this http client for our apik client
+
+	client := New(
+		WithBaseUrl("https://httpbin.org"),
+		WithTrace(),
+		WithHttpClient(httpClient),
+	)
+
+	// This request will contain the trace information
+	req := request.NewRequest(
+		context.Background(),
+		"/get",
+		request.AddParam("k", "v"),
+	)
+
+	type httpBinResponse struct {
+		URL string `json:"url"`
+	}
+
+	// in this case we require either a result or a response
+	result := new(httpBinResponse)
+	_, err = client.JSON(req, result)
+
+	assert.NoError(t, err)
+
+	// ensure that result has the expected value
+	assert.Equal(t, result.URL, "https://httpbin.org/get?k=v")
+
+	traceInfo := req.TraceInfo()
+	assert.NotNil(t, traceInfo)
+
+	address := strings.TrimPrefix(testServer.URL, "http://")
+
+	// compare connect done address with the proxy server address
+	assert.Equal(t, address, traceInfo.ConnectDone[0].Address)
 
 }
