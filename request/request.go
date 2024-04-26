@@ -115,8 +115,10 @@ func (r *Request) IntoHttpRequest() (req *http.Request, err error) {
 		req = req.WithContext(ctx)
 	}
 
-	if len(r.Header) > 0 {
-		req.Header = r.Header
+	req.Header = r.Header
+
+	if ct := req.Header.Get("Content-Type"); ct == "" && r.Method == http.MethodPost {
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	}
 
 	if len(multipartContentType) > 0 {
