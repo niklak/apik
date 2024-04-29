@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/niklak/apik/internal/proxy"
+	"github.com/niklak/apik/reqopt"
 	"github.com/niklak/apik/request"
 )
 
@@ -56,7 +57,7 @@ func TestClient_JSONResponse(t *testing.T) {
 	req := request.NewRequest(
 		context.Background(),
 		"/post",
-		request.Method("POST"),
+		reqopt.Method("POST"),
 	)
 
 	result := new(httpBinResponse)
@@ -79,8 +80,8 @@ func TestClient_QueryParams(t *testing.T) {
 	req := request.NewRequest(
 		context.Background(),
 		"/get",
-		request.AddParam("k", "v1"),
-		request.AddParam("k", "v2"),
+		reqopt.AddParam("k", "v1"),
+		reqopt.AddParam("k", "v2"),
 	)
 
 	result := new(httpBinResponse)
@@ -109,12 +110,12 @@ func TestClient_Files(t *testing.T) {
 	req := request.NewRequest(
 		context.Background(),
 		"/post",
-		request.Method("POST"),
-		request.SetFileBody("file_0", "file_0.txt", []byte("test content")),
-		request.SetFileBody("file_1", "file_1.txt", "test content"),
-		request.SetFileBody("file_2", "file_2.txt", strings.NewReader("test content")),
-		request.SetFile("file_3", "test_data/test.txt"),
-		request.AddFormField("k", "v"),
+		reqopt.Method("POST"),
+		reqopt.SetFileBody("file_0", "file_0.txt", []byte("test content")),
+		reqopt.SetFileBody("file_1", "file_1.txt", "test content"),
+		reqopt.SetFileBody("file_2", "file_2.txt", strings.NewReader("test content")),
+		reqopt.SetFile("file_3", "test_data/test.txt"),
+		reqopt.AddFormField("k", "v"),
 	)
 
 	result := new(httpBinResponse)
@@ -146,8 +147,8 @@ func TestClient_Files_UnsupportedBodyType(t *testing.T) {
 	req := request.NewRequest(
 		context.Background(),
 		"/post",
-		request.Method("POST"),
-		request.SetFileBody("file_0", "file_0.txt", 1),
+		reqopt.Method("POST"),
+		reqopt.SetFileBody("file_0", "file_0.txt", 1),
 	)
 
 	result := new(httpBinResponse)
@@ -185,7 +186,7 @@ func TestClient_TraceProxy(t *testing.T) {
 	req := request.NewRequest(
 		context.Background(),
 		"/get",
-		request.AddParam("k", "v"),
+		reqopt.AddParam("k", "v"),
 	)
 
 	type httpBinResponse struct {
@@ -246,7 +247,7 @@ func TestClient_RequestCookie(t *testing.T) {
 	req := request.NewRequest(
 		context.Background(),
 		"/cookies",
-		request.AddCookie(&http.Cookie{Name: "k", Value: "v", Path: "/cookies"}),
+		reqopt.AddCookie(&http.Cookie{Name: "k", Value: "v", Path: "/cookies"}),
 	)
 
 	type httpBinResponse struct {
@@ -304,7 +305,7 @@ func TestClient_CookieIntersection(t *testing.T) {
 	req := request.NewRequest(
 		context.Background(),
 		"/cookies",
-		request.AddCookie(&http.Cookie{Name: "k", Value: "request-cookie", Path: "/cookies"}),
+		reqopt.AddCookie(&http.Cookie{Name: "k", Value: "request-cookie", Path: "/cookies"}),
 	)
 
 	var result []briefCookie

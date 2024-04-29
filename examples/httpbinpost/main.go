@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/niklak/apik"
-	"github.com/niklak/apik/request"
+	"github.com/niklak/apik/reqopt"
 )
 
 type httpBinResponse struct {
@@ -20,13 +20,13 @@ func main() {
 	client := apik.New(apik.WithBaseUrl("https://httpbin.org"))
 
 	// Creating a POST request
-	req := request.NewRequest(
+	req := apik.NewRequest(
 		context.Background(),
 		"/post",
-		request.Method("POST"),
-		request.AddFormField("k", "v1"),
-		request.AddFormField("k", "v2"),
-		request.Header("User-Agent", "apik/0.1"),
+		reqopt.Method("POST"),
+		reqopt.AddFormField("k", "v1"),
+		reqopt.AddFormField("k", "v2"),
+		reqopt.Header("User-Agent", "apik/0.1"),
 	)
 
 	result := new(httpBinResponse)

@@ -13,15 +13,23 @@ import (
 	"github.com/rs/zerolog/log"
 	"golang.org/x/net/publicsuffix"
 
+	"github.com/niklak/apik/reqopt"
 	"github.com/niklak/apik/request"
 )
 
 var defaultTimeout = time.Minute
 
+// Request is an alias for request.Request
+type Request = request.Request
+
+// NewRequest is an alias for request.NewRequest
+var NewRequest = request.NewRequest
+
+// Response represents a wrapper around http.Response with the result of the request
 type Response struct {
 	Raw     *http.Response
 	Result  any
-	Request *request.Request
+	Request *Request
 }
 
 type Client struct {
@@ -34,14 +42,14 @@ type Client struct {
 	baseURL *url.URL
 }
 
-func (c *Client) Do(req *request.Request) (resp *http.Response, err error) {
+func (c *Client) Do(req *Request) (resp *http.Response, err error) {
 
 	if c.baseURL != nil {
 		req.URL = c.baseURL.ResolveReference(req.URL)
 	}
 
 	if c.trace {
-		request.Trace()(req)
+		reqopt.Trace()(req)
 	}
 
 	var rawReq *http.Request
@@ -162,7 +170,6 @@ func WithCookieJar(jar http.CookieJar) ClientOption {
 	return func(c *Client) {
 		c.c.Jar = jar
 	}
-
 }
 
 func WithHeaders(header http.Header) ClientOption {

@@ -75,7 +75,7 @@ type Request struct {
 	Cookies []*http.Cookie
 	// URL is the URL of the request
 	URL       *url.URL
-	trace     bool
+	Trace     bool
 	traceInfo *TraceInfo
 }
 
@@ -128,7 +128,7 @@ func (r *Request) IntoHttpRequest() (req *http.Request, err error) {
 		return
 	}
 
-	if r.trace {
+	if r.Trace {
 		info, ctx := createTraceContext(req.Context())
 		r.traceInfo = info
 		req = req.WithContext(ctx)
@@ -172,117 +172,3 @@ func NewRequest(ctx context.Context, dstURL string, opts ...RequestOption) *Requ
 
 // RequestOption is a function that modifies the request
 type RequestOption func(*Request)
-
-// Method sets the HTTP method of the request
-func Method(method string) RequestOption {
-	return func(r *Request) {
-		r.Method = method
-	}
-}
-
-// Header adds one HTTP header
-func Header(key, value string) RequestOption {
-	return func(r *Request) {
-		r.Header.Add(key, value)
-	}
-}
-
-// Headers sets the HTTP header
-func Headers(header http.Header) RequestOption {
-	return func(r *Request) {
-		r.Header = header
-	}
-}
-
-// AddParam adds a query parameter
-func AddParam(key, value string) RequestOption {
-	return func(r *Request) {
-		r.Params.Add(key, value)
-	}
-}
-
-// SetParam sets the query parameter
-func SetParam(key, value string) RequestOption {
-	return func(r *Request) {
-		r.Params.Set(key, value)
-	}
-}
-
-// SetParams sets the query parameters
-func SetParams(params url.Values) RequestOption {
-	return func(r *Request) {
-		r.Params = params
-	}
-}
-
-// AddFormField adds a form field
-func AddFormField(key, value string) RequestOption {
-	return func(r *Request) {
-		r.Form.Add(key, value)
-	}
-}
-
-// SetFormField sets a form field
-func SetFormField(key, value string) RequestOption {
-	return func(r *Request) {
-		r.Form.Set(key, value)
-	}
-}
-
-// SetForm sets the form data
-func SetForm(form url.Values) RequestOption {
-	return func(r *Request) {
-		r.Form = form
-	}
-}
-
-// SetBody sets the raw request body
-func SetBody(body []byte) RequestOption {
-	return func(r *Request) {
-		r.Body = body
-	}
-}
-
-// SetFile sets a file field
-func SetFile(fieldname, source string) RequestOption {
-	return func(r *Request) {
-		r.Files = append(r.Files, &FileField{
-			Fieldname: fieldname,
-			Source:    source,
-		})
-	}
-}
-
-// SetFileBody sets a file field with body
-func SetFileBody(fieldname, filename string, body any) RequestOption {
-	return func(r *Request) {
-		r.Files = append(r.Files, &FileField{
-			Fieldname: fieldname,
-			Filename:  filename,
-			Body:      body,
-		})
-	}
-}
-
-// Trace enables tracing for the request
-func Trace() RequestOption {
-	return func(r *Request) {
-		r.trace = true
-	}
-}
-
-// AddCookie adds a cookie
-func AddCookie(cookie *http.Cookie) RequestOption {
-	return func(r *Request) {
-		r.Cookies = append(r.Cookies, cookie)
-	}
-}
-
-// SetCookies sets the cookies
-func SetCookies(cookies []*http.Cookie) RequestOption {
-	return func(r *Request) {
-		r.Cookies = cookies
-	}
-}
-
-// reqopt
