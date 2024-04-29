@@ -13,14 +13,20 @@ import (
 	"strings"
 )
 
-type FileFieldData struct {
+// FileField represents a file field data for one file
+type FileField struct {
+	// Fieldname is the name of the field
 	Fieldname string
-	Filename  string
-	Source    string
-	Body      any
+	// Filename is the name of the file
+	Filename string
+	// Source is the path to the file
+	Source string
+	// Body is the content of the file
+	Body any
 }
 
-func (f *FileFieldData) Write(w *multipart.Writer) (err error) {
+// Write writes the file field to the multipart writer
+func (f *FileField) Write(w *multipart.Writer) (err error) {
 
 	if f.Source != "" {
 		body, err := os.ReadFile(f.Source)
@@ -49,24 +55,36 @@ func (f *FileFieldData) Write(w *multipart.Writer) (err error) {
 	return
 }
 
+// Request represents a  wrapper around http.Request
 type Request struct {
-	Ctx       context.Context
-	Method    string
-	Header    http.Header
-	Body      []byte
-	Form      url.Values
-	Params    url.Values
-	Files     []*FileFieldData
-	Cookies   []*http.Cookie
+	// Ctx is the context of the request
+	Ctx context.Context
+	// Method is the HTTP method. Default is GET
+	Method string
+	// Header is the HTTP headers
+	Header http.Header
+	// Body is the raw request body
+	Body []byte
+	// Form is the form data that will be encoded as application/x-www-form-urlencoded
+	Form url.Values
+	// Params is the query parameters
+	Params url.Values
+	// Files represents the files that will be sent in the request's body as multipart/form-data
+	Files []*FileField
+	// Cookies is the cookies that will be sent in the request
+	Cookies []*http.Cookie
+	// URL is the URL of the request
 	URL       *url.URL
 	trace     bool
 	traceInfo *TraceInfo
 }
 
+// TraceInfo represents the trace information of the request. Available only if the request is traced.
 func (r *Request) TraceInfo() *TraceInfo {
 	return r.traceInfo
 }
 
+// IntoHttpRequest converts the request to http.Request
 func (r *Request) IntoHttpRequest() (req *http.Request, err error) {
 
 	if len(r.Params) > 0 {
@@ -102,6 +120,7 @@ func (r *Request) IntoHttpRequest() (req *http.Request, err error) {
 		body = bytes.NewReader(r.Body)
 	} else if len(r.Form) > 0 {
 		body = strings.NewReader(r.Form.Encode())
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	}
 
 	req, err = http.NewRequestWithContext(r.Ctx, r.Method, r.URL.String(), body)
@@ -131,8 +150,7 @@ func (r *Request) IntoHttpRequest() (req *http.Request, err error) {
 	return
 }
 
-type RequestOption func(*Request)
-
+// NewRequest creates a new wrapped request with options
 func NewRequest(ctx context.Context, dstURL string, opts ...RequestOption) *Request {
 
 	parsedURL, _ := url.Parse(dstURL)
@@ -152,78 +170,93 @@ func NewRequest(ctx context.Context, dstURL string, opts ...RequestOption) *Requ
 	return r
 }
 
+// RequestOption is a function that modifies the request
+type RequestOption func(*Request)
+
+// Method sets the HTTP method of the request
 func Method(method string) RequestOption {
 	return func(r *Request) {
 		r.Method = method
 	}
 }
 
+// Header adds one HTTP header
 func Header(key, value string) RequestOption {
 	return func(r *Request) {
 		r.Header.Add(key, value)
 	}
 }
 
+// Headers sets the HTTP header
 func Headers(header http.Header) RequestOption {
 	return func(r *Request) {
 		r.Header = header
 	}
 }
 
+// AddParam adds a query parameter
 func AddParam(key, value string) RequestOption {
 	return func(r *Request) {
 		r.Params.Add(key, value)
 	}
 }
 
+// SetParam sets the query parameter
 func SetParam(key, value string) RequestOption {
 	return func(r *Request) {
 		r.Params.Set(key, value)
 	}
 }
 
+// SetParams sets the query parameters
 func SetParams(params url.Values) RequestOption {
 	return func(r *Request) {
 		r.Params = params
 	}
 }
 
+// AddFormField adds a form field
 func AddFormField(key, value string) RequestOption {
 	return func(r *Request) {
 		r.Form.Add(key, value)
 	}
 }
 
+// SetFormField sets a form field
 func SetFormField(key, value string) RequestOption {
 	return func(r *Request) {
 		r.Form.Set(key, value)
 	}
 }
 
+// SetForm sets the form data
 func SetForm(form url.Values) RequestOption {
 	return func(r *Request) {
 		r.Form = form
 	}
 }
 
+// SetBody sets the raw request body
 func SetBody(body []byte) RequestOption {
 	return func(r *Request) {
 		r.Body = body
 	}
 }
 
+// SetFile sets a file field
 func SetFile(fieldname, source string) RequestOption {
 	return func(r *Request) {
-		r.Files = append(r.Files, &FileFieldData{
+		r.Files = append(r.Files, &FileField{
 			Fieldname: fieldname,
 			Source:    source,
 		})
 	}
 }
 
+// SetFileBody sets a file field with body
 func SetFileBody(fieldname, filename string, body any) RequestOption {
 	return func(r *Request) {
-		r.Files = append(r.Files, &FileFieldData{
+		r.Files = append(r.Files, &FileField{
 			Fieldname: fieldname,
 			Filename:  filename,
 			Body:      body,
@@ -231,8 +264,25 @@ func SetFileBody(fieldname, filename string, body any) RequestOption {
 	}
 }
 
+// Trace enables tracing for the request
 func Trace() RequestOption {
 	return func(r *Request) {
 		r.trace = true
 	}
 }
+
+// AddCookie adds a cookie
+func AddCookie(cookie *http.Cookie) RequestOption {
+	return func(r *Request) {
+		r.Cookies = append(r.Cookies, cookie)
+	}
+}
+
+// SetCookies sets the cookies
+func SetCookies(cookies []*http.Cookie) RequestOption {
+	return func(r *Request) {
+		r.Cookies = cookies
+	}
+}
+
+// reqopt

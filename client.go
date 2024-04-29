@@ -123,6 +123,10 @@ func New(opts ...ClientOption) *Client {
 		c.c.Jar = cookieJar
 	}
 
+	if c.cookies != nil {
+		c.c.Jar.SetCookies(c.baseURL, c.cookies)
+	}
+
 	c.logger = log.With().Str("module", "apik").Str("component", "Client").Logger()
 
 	return c
@@ -151,9 +155,6 @@ func WithTrace() ClientOption {
 func WithCookies(cookies []*http.Cookie) ClientOption {
 	return func(c *Client) {
 		c.cookies = cookies
-		if c.c.Jar != nil {
-			c.c.Jar.SetCookies(nil, cookies)
-		}
 	}
 }
 
