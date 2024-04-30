@@ -114,7 +114,7 @@ func TestClient_Files(t *testing.T) {
 		reqopt.SetFileBody("file_0", "file_0.txt", []byte("test content")),
 		reqopt.SetFileBody("file_1", "file_1.txt", "test content"),
 		reqopt.SetFileBody("file_2", "file_2.txt", strings.NewReader("test content")),
-		reqopt.SetFile("file_3", "test_data/test.txt"),
+		reqopt.SetFile("file_3", "test/data/test.txt"),
 		reqopt.AddFormField("k", "v"),
 	)
 
@@ -160,7 +160,7 @@ func TestClient_Files_UnsupportedBodyType(t *testing.T) {
 func TestClient_TraceProxy(t *testing.T) {
 
 	// Start a test server that will act as a proxy
-	testServer := httptest.NewServer(http.HandlerFunc(proxy.ProxyConnectHandler))
+	testServer := httptest.NewServer(http.HandlerFunc(proxy.HttpProxyConnectHandler))
 
 	defer testServer.Close()
 
@@ -187,10 +187,12 @@ func TestClient_TraceProxy(t *testing.T) {
 		context.Background(),
 		"/get",
 		reqopt.AddParam("k", "v"),
+		reqopt.Header("User-Agent", "apik/0.1"),
 	)
 
 	type httpBinResponse struct {
-		URL string `json:"url"`
+		URL     string            `json:"url"`
+		Headers map[string]string `json:"headers"`
 	}
 
 	// in this case we require either a result or a response
@@ -201,6 +203,9 @@ func TestClient_TraceProxy(t *testing.T) {
 
 	// ensure that result has the expected value
 	assert.Equal(t, result.URL, "https://httpbin.org/get?k=v")
+
+	subsetHeaders := map[string]string{"User-Agent": "apik/0.1"}
+	assert.Subset(t, result.Headers, subsetHeaders)
 
 	traceInfo := req.TraceInfo()
 	assert.NotNil(t, traceInfo)
