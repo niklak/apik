@@ -92,7 +92,6 @@ func (r *Request) IntoHttpRequest() (req *http.Request, err error) {
 	}
 
 	var body io.Reader
-	var multipartContentType string
 
 	if len(r.Files) > 0 {
 		buf := new(bytes.Buffer)
@@ -114,13 +113,13 @@ func (r *Request) IntoHttpRequest() (req *http.Request, err error) {
 			return
 		}
 		body = buf
-		multipartContentType = writer.FormDataContentType()
+		r.Header.Set("Content-Type", writer.FormDataContentType())
 
-	} else if len(r.Body) > 0 {
-		body = bytes.NewReader(r.Body)
 	} else if len(r.Form) > 0 {
 		body = strings.NewReader(r.Form.Encode())
 		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	} else if len(r.Body) > 0 {
+		body = bytes.NewReader(r.Body)
 	}
 
 	req, err = http.NewRequestWithContext(r.Ctx, r.Method, r.URL.String(), body)
@@ -136,13 +135,6 @@ func (r *Request) IntoHttpRequest() (req *http.Request, err error) {
 
 	req.Header = r.Header
 
-	if ct := req.Header.Get("Content-Type"); ct == "" && len(r.Form) > 0 {
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	}
-
-	if len(multipartContentType) > 0 {
-		req.Header.Set("Content-Type", multipartContentType)
-	}
 	for _, cookie := range r.Cookies {
 		req.AddCookie(cookie)
 
