@@ -42,6 +42,7 @@ type Client struct {
 	baseURL *url.URL
 }
 
+// Do sends an http.Request built from Request and returns an http.Response
 func (c *Client) Do(req *Request) (resp *http.Response, err error) {
 
 	if c.baseURL != nil {
@@ -59,6 +60,10 @@ func (c *Client) Do(req *Request) (resp *http.Response, err error) {
 	return c.c.Do(rawReq)
 }
 
+// Fetch sends an http.Request built from Request and returns a Response,
+// containing the http.Response and the result of the request.
+// The result can be a *string, a *[]byte or an io.Writer.
+// If the result is nil, then result will be set as a *bytes.Buffer.
 func (c *Client) Fetch(req *request.Request, result any) (resp *Response, err error) {
 	var rawResp *http.Response
 	if rawResp, err = c.Do(req); err != nil {
@@ -87,6 +92,9 @@ func (c *Client) Fetch(req *request.Request, result any) (resp *Response, err er
 	return
 }
 
+// JSON sends an http.Request built from Request and returns a Response,
+// containing the http.Response and the result of the request.
+// The result must be a pointer to entity that can be decoded from json body.
 func (c *Client) JSON(req *request.Request, result any) (resp *Response, err error) {
 	var rawResp *http.Response
 	if rawResp, err = c.Do(req); err != nil {
@@ -107,6 +115,7 @@ func (c *Client) JSON(req *request.Request, result any) (resp *Response, err err
 	return
 }
 
+// New creates a new Client with the given options
 func New(opts ...ClientOption) *Client {
 
 	c := &Client{
@@ -140,50 +149,59 @@ func New(opts ...ClientOption) *Client {
 	return c
 }
 
+// ClientOption is a function that modifies a Client
 type ClientOption func(*Client)
 
+// WithHttpClient sets the http.Client to use
 func WithHttpClient(hc *http.Client) ClientOption {
 	return func(c *Client) {
 		c.c = hc
 	}
 }
 
+// WithTimeout sets the timeout for the http.Client
 func WithTimeout(t time.Duration) ClientOption {
 	return func(c *Client) {
 		c.timeout = t
 	}
 }
 
+// WithTrace enables tracing for the http.Request
 func WithTrace() ClientOption {
 	return func(c *Client) {
 		c.trace = true
 	}
 }
 
+// WithCookies sets the cookies for the http.Client
 func WithCookies(cookies []*http.Cookie) ClientOption {
 	return func(c *Client) {
 		c.cookies = cookies
 	}
 }
 
+// WithCookieJar sets the cookie jar for the http.Client
 func WithCookieJar(jar http.CookieJar) ClientOption {
 	return func(c *Client) {
 		c.c.Jar = jar
 	}
 }
 
+// WithHeaders sets an http.Header for the http.Client
 func WithHeaders(header http.Header) ClientOption {
 	return func(c *Client) {
 		c.header = header
 	}
 }
 
+// WithHeader adds a key-value pair in the http.Header for the http.Client
 func WithHeader(key, value string) ClientOption {
 	return func(c *Client) {
 		c.header.Add(key, value)
 	}
 }
 
+// WithBaseUrl sets the base url for the http.Client
 func WithBaseUrl(baseURL string) ClientOption {
 	return func(c *Client) {
 		u, _ := url.Parse(baseURL)
