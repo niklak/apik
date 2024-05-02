@@ -136,7 +136,7 @@ func (r *Request) IntoHttpRequest() (req *http.Request, err error) {
 
 	req.Header = r.Header
 
-	if ct := req.Header.Get("Content-Type"); ct == "" && r.Method == http.MethodPost {
+	if ct := req.Header.Get("Content-Type"); ct == "" && len(r.Form) > 0 {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	}
 

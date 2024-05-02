@@ -137,6 +137,30 @@ func TestClient_Files(t *testing.T) {
 	assert.Equal(t, expectedForm, result.Form)
 }
 
+func TestClient_FileError(t *testing.T) {
+
+	type httpBinResponse struct {
+		URL   string            `json:"url"`
+		Files map[string]string `json:"files"`
+		Form  map[string]string `json:"form"`
+	}
+
+	client := New(WithBaseUrl("https://httpbin.org"))
+
+	req := request.NewRequest(
+		context.Background(),
+		"/post",
+		reqopt.Method("POST"),
+		reqopt.SetFile("file_3", "test/data/non-existing.txt"),
+	)
+
+	result := new(httpBinResponse)
+	_, err := client.JSON(req, result)
+
+	assert.Error(t, err)
+
+}
+
 func TestClient_Files_UnsupportedBodyType(t *testing.T) {
 
 	type httpBinResponse struct {
@@ -339,4 +363,54 @@ func TestClient_CookieIntersection(t *testing.T) {
 
 	assert.Equal(t, expectedCookies, result)
 
+}
+
+func TestClient_PostForm(t *testing.T) {
+
+	type httpBinResponse struct {
+		Form map[string][]string `json:"form"`
+	}
+
+	client := New(WithBaseUrl("https://httpbin.org"))
+
+	req := request.NewRequest(
+		context.Background(),
+		"/post",
+		reqopt.Method("POST"),
+		reqopt.AddFormField("k", "v1"),
+		reqopt.AddFormField("k", "v2"),
+	)
+
+	result := new(httpBinResponse)
+	resp, err := client.JSON(req, result)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 200, resp.Raw.StatusCode)
+
+	expectedForm := map[string][]string{"k": {"v1", "v2"}}
+	assert.Equal(t, expectedForm, result.Form)
+}
+
+func TestClient_Body(t *testing.T) {
+
+	type httpBinResponse struct {
+		Data string `json:"data"`
+	}
+
+	client := New(WithBaseUrl("https://httpbin.org"))
+
+	req := request.NewRequest(
+		context.Background(),
+		"/post",
+		reqopt.Method("POST"),
+		reqopt.SetBody([]byte("test")),
+	)
+
+	result := new(httpBinResponse)
+	resp, err := client.JSON(req, result)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 200, resp.Raw.StatusCode)
+
+	assert.Equal(t, "test", result.Data)
 }
