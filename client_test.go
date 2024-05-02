@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/niklak/apik/internal/proxy"
@@ -158,6 +159,8 @@ func TestClient_Files_UnsupportedBodyType(t *testing.T) {
 }
 
 func TestClient_TraceProxy(t *testing.T) {
+
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
 	// Start a test server that will act as a proxy
 	testServer := httptest.NewServer(http.HandlerFunc(proxy.HttpProxyConnectHandler))
