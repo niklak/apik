@@ -21,7 +21,10 @@ import (
 
 func TestClient_FetchDiscard(t *testing.T) {
 	// We need only the status code, so we discard the response body
-	client := New(WithBaseUrl("https://httpbin.org"))
+	client := New(
+		WithBaseUrl("https://httpbin.org"),
+		WithTimeout(5*time.Second),
+	)
 
 	resp, err := client.Fetch(
 		request.NewRequest(context.Background(), "/get"),
@@ -32,8 +35,11 @@ func TestClient_FetchDiscard(t *testing.T) {
 
 }
 
-func TestClient_Fetch(t *testing.T) {
-	client := New(WithBaseUrl("https://httpbin.org"))
+func TestClient_FetchString(t *testing.T) {
+	client := New(
+		WithBaseUrl("https://httpbin.org"),
+		WithTimeout(5*time.Second),
+	)
 
 	ctx := context.Background()
 	req := request.NewRequest(ctx, "/get")
@@ -47,13 +53,28 @@ func TestClient_Fetch(t *testing.T) {
 	assert.Contains(t, result, "https://httpbin.org/get")
 }
 
+func TestClient_FetchBytes(t *testing.T) {
+	client := New(
+		WithBaseUrl("https://httpbin.org"),
+		WithTimeout(5*time.Second),
+	)
+
+	ctx := context.Background()
+	req := request.NewRequest(ctx, "/get")
+
+	var result []byte
+	_, err := client.Fetch(req, &result)
+	assert.NoError(t, err)
+	assert.Contains(t, string(result), "https://httpbin.org/get")
+}
+
 func TestClient_JSONResponse(t *testing.T) {
 
 	type httpBinResponse struct {
 		URL string `json:"url"`
 	}
 
-	client := New(WithBaseUrl("https://httpbin.org"))
+	client := New(WithBaseUrl("https://httpbin.org"), WithTimeout(5*time.Second))
 
 	req := request.NewRequest(
 		context.Background(),
@@ -76,7 +97,7 @@ func TestClient_QueryParams(t *testing.T) {
 		Args map[string][]string `json:"args"`
 	}
 
-	client := New(WithBaseUrl("https://httpbin.org"))
+	client := New(WithBaseUrl("https://httpbin.org"), WithTimeout(5*time.Second))
 
 	req := request.NewRequest(
 		context.Background(),
@@ -106,7 +127,7 @@ func TestClient_Files(t *testing.T) {
 		Form  map[string]string `json:"form"`
 	}
 
-	client := New(WithBaseUrl("https://httpbin.org"))
+	client := New(WithBaseUrl("https://httpbin.org"), WithTimeout(5*time.Second))
 
 	req := request.NewRequest(
 		context.Background(),
@@ -145,7 +166,7 @@ func TestClient_FileError(t *testing.T) {
 		Form  map[string]string `json:"form"`
 	}
 
-	client := New(WithBaseUrl("https://httpbin.org"))
+	client := New(WithBaseUrl("https://httpbin.org"), WithTimeout(5*time.Second))
 
 	req := request.NewRequest(
 		context.Background(),
@@ -167,7 +188,7 @@ func TestClient_Files_UnsupportedBodyType(t *testing.T) {
 		URL string `json:"url"`
 	}
 
-	client := New(WithBaseUrl("https://httpbin.org"))
+	client := New(WithBaseUrl("https://httpbin.org"), WithTimeout(5*time.Second))
 
 	req := request.NewRequest(
 		context.Background(),
@@ -207,6 +228,7 @@ func TestClient_TraceProxy(t *testing.T) {
 		WithBaseUrl("https://httpbin.org"),
 		WithTrace(),
 		WithHttpClient(httpClient),
+		WithHeader("User-Agent", "apik/0.1"),
 	)
 
 	// This request will contain the trace information
@@ -438,4 +460,26 @@ func TestClient_SendJSON(t *testing.T) {
 
 	expectedJSON := map[string]interface{}{"k": "v"}
 	assert.Equal(t, expectedJSON, result.JSON)
+}
+
+func TestClient_SetHeaders(t *testing.T) {
+
+	type httpBinResponse struct {
+		Headers map[string]string `json:"headers"`
+	}
+
+	client := New(WithBaseUrl("https://httpbin.org"))
+
+	req := request.NewRequest(
+		context.Background(),
+		"/get",
+		reqopt.Headers(http.Header{"X-Test": {"Test Value"}}),
+	)
+
+	result := new(httpBinResponse)
+	_, err := client.JSON(req, result)
+
+	assert.NoError(t, err)
+
+	assert.Equal(t, result.Headers["X-Test"], "Test Value")
 }
