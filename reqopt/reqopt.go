@@ -119,4 +119,9 @@ func SetCookies(cookies []*http.Cookie) request.RequestOption {
 	}
 }
 
-// reqopt
+// SetJSON sets the URL of the request
+func SetJSON(entity any) request.RequestOption {
+	return func(r *request.Request) {
+		r.JSON = entity
+	}
+}

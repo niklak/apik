@@ -414,3 +414,28 @@ func TestClient_Body(t *testing.T) {
 
 	assert.Equal(t, "test", result.Data)
 }
+
+func TestClient_SendJSON(t *testing.T) {
+
+	type httpBinResponse struct {
+		JSON map[string]interface{} `json:"json"`
+	}
+
+	client := New(WithBaseUrl("https://httpbin.org"))
+
+	req := request.NewRequest(
+		context.Background(),
+		"/post",
+		reqopt.Method("POST"),
+		reqopt.SetJSON(map[string]interface{}{"k": "v"}),
+	)
+
+	result := new(httpBinResponse)
+	resp, err := client.JSON(req, result)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 200, resp.Raw.StatusCode)
+
+	expectedJSON := map[string]interface{}{"k": "v"}
+	assert.Equal(t, expectedJSON, result.JSON)
+}

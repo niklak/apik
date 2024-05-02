@@ -3,6 +3,7 @@ package request
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -74,8 +75,11 @@ type Request struct {
 	// Cookies is the cookies that will be sent in the request
 	Cookies []*http.Cookie
 	// URL is the URL of the request
-	URL       *url.URL
-	Trace     bool
+	URL *url.URL
+	// Trace is a flag that indicates if the request should be traced
+	Trace bool
+	// JSON is a entity to be sent as JSON
+	JSON      any
 	traceInfo *TraceInfo
 }
 
@@ -118,6 +122,14 @@ func (r *Request) IntoHttpRequest() (req *http.Request, err error) {
 	} else if len(r.Form) > 0 {
 		body = strings.NewReader(r.Form.Encode())
 		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	} else if r.JSON != nil {
+		buf := new(bytes.Buffer)
+		err = json.NewEncoder(buf).Encode(r.JSON)
+		if err != nil {
+			return
+		}
+		body = buf
+		r.Header.Set("Content-Type", "application/json")
 	} else if len(r.Body) > 0 {
 		body = bytes.NewReader(r.Body)
 	}
