@@ -104,7 +104,10 @@ func (r *Request) writeMultiPartFormData() (body io.Reader, err error) {
 			}
 		}
 	}
-	if err = writer.Close(); err != nil {
+
+	err = writer.Close()
+
+	if err != nil {
 		return
 	}
 	body = buf
