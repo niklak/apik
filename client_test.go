@@ -470,13 +470,13 @@ func TestClient_SetHeaders(t *testing.T) {
 
 	client := New(
 		WithBaseUrl("https://httpbin.org"),
-		WithHeaders(http.Header{"X-Cli-Test": {"Test Value"}}),
+		WithHeaders(http.Header{"X-Cli-Test": {"Test"}}),
 	)
 
 	req := request.NewRequest(
 		context.Background(),
 		"/get",
-		reqopt.Headers(http.Header{"X-Req-Test": {"Test Value"}}),
+		reqopt.Headers(http.Header{"X-Req-Test": {"Test"}}),
 	)
 
 	result := new(httpBinResponse)
@@ -484,8 +484,8 @@ func TestClient_SetHeaders(t *testing.T) {
 
 	assert.NoError(t, err)
 
-	assert.Equal(t, result.Headers["X-Test"], "Test Value")
-	assert.Equal(t, result.Headers["X-Cli-Test"], "Test Value")
+	assert.Equal(t, "Test", result.Headers["X-Req-Test"])
+	assert.Equal(t, "Test", result.Headers["X-Cli-Test"])
 }
 
 func TestClient_NoContext(t *testing.T) {

@@ -53,6 +53,12 @@ func (c *Client) Do(req *Request) (resp *http.Response, err error) {
 		reqopt.Trace()(req)
 	}
 
+	for key, values := range c.header {
+		if _, ok := req.Header[key]; !ok {
+			req.Header[key] = values
+		}
+	}
+
 	var rawReq *http.Request
 	if rawReq, err = req.IntoHttpRequest(); err != nil {
 		return
