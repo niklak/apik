@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// TraceTimings represents the timings of the request
 type TraceTimings struct {
 	ConnGet           time.Time
 	ConnGot           time.Time
@@ -23,6 +24,7 @@ type TraceTimings struct {
 	WroteRequest      time.Time
 }
 
+// TraceConnect represents a connection trace
 type TraceConnect struct {
 	Network string
 	Address string
@@ -30,11 +32,13 @@ type TraceConnect struct {
 	Time    time.Time
 }
 
+// TLSHandshake represents a TLS handshake
 type TLSHandshake struct {
 	State tls.ConnectionState
 	Error error
 }
 
+// TraceInfo represents the trace information
 type TraceInfo struct {
 	Timings      TraceTimings
 	GetConnHost  string
@@ -47,7 +51,8 @@ type TraceInfo struct {
 	ConnectDone  []TraceConnect
 }
 
-func (s *TraceInfo) Hooks() *httptrace.ClientTrace {
+// Hooks returns a httptrace.ClientTrace with the trace hooks
+func (s *TraceInfo) hooks() *httptrace.ClientTrace {
 	t := &httptrace.ClientTrace{
 		GetConn: func(hostPort string) {
 			s.Timings.ConnGet = time.Now()
@@ -114,9 +119,10 @@ func (s *TraceInfo) Hooks() *httptrace.ClientTrace {
 	return t
 }
 
+// createTraceContext creates a new context with a trace hook
 func createTraceContext(ctx context.Context) (info *TraceInfo, traceCtx context.Context) {
 
 	info = &TraceInfo{}
-	traceCtx = httptrace.WithClientTrace(ctx, info.Hooks())
+	traceCtx = httptrace.WithClientTrace(ctx, info.hooks())
 	return
 }

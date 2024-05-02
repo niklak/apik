@@ -91,6 +91,8 @@ func (r *Request) TraceInfo() *TraceInfo {
 // IntoHttpRequest converts the request to http.Request
 func (r *Request) IntoHttpRequest() (req *http.Request, err error) {
 
+	// TODO: split this method
+
 	if len(r.Params) > 0 {
 		r.URL.RawQuery = r.Params.Encode()
 	}
