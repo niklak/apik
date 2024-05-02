@@ -4,7 +4,7 @@
 This package is a wrapper over the standard `net/http` package and is intended to simplify working with APIs.
 
 
-# Examples
+## Examples
 
 ```go
 
