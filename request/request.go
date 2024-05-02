@@ -88,10 +88,48 @@ func (r *Request) TraceInfo() *TraceInfo {
 	return r.traceInfo
 }
 
+func (r *Request) writeMultiPartFormData() (body io.Reader, err error) {
+	buf := new(bytes.Buffer)
+	writer := multipart.NewWriter(buf)
+	for _, file := range r.Files {
+		if err = file.Write(writer); err != nil {
+			return
+		}
+	}
+
+	for key, values := range r.Form {
+		for _, value := range values {
+			if err = writer.WriteField(key, value); err != nil {
+				return
+			}
+		}
+	}
+	if err = writer.Close(); err != nil {
+		return
+	}
+	body = buf
+	r.Header.Set("Content-Type", writer.FormDataContentType())
+	return
+}
+
+func (r *Request) writeJSON() (body io.Reader, err error) {
+	buf := new(bytes.Buffer)
+	err = json.NewEncoder(buf).Encode(r.JSON)
+	if err != nil {
+		return
+	}
+	body = buf
+	r.Header.Set("Content-Type", "application/json")
+	return
+}
+
+func (r *Request) writeForm() (body io.Reader) {
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	return strings.NewReader(r.Form.Encode())
+}
+
 // IntoHttpRequest converts the request to http.Request
 func (r *Request) IntoHttpRequest() (req *http.Request, err error) {
-
-	// TODO: split this method
 
 	if len(r.Params) > 0 {
 		r.URL.RawQuery = r.Params.Encode()
@@ -100,40 +138,17 @@ func (r *Request) IntoHttpRequest() (req *http.Request, err error) {
 	var body io.Reader
 
 	if len(r.Files) > 0 {
-		buf := new(bytes.Buffer)
-		writer := multipart.NewWriter(buf)
-		for _, file := range r.Files {
-			if err = file.Write(writer); err != nil {
-				return
-			}
-		}
-
-		for key, values := range r.Form {
-			for _, value := range values {
-				if err = writer.WriteField(key, value); err != nil {
-					return
-				}
-			}
-		}
-		if err = writer.Close(); err != nil {
-			return
-		}
-		body = buf
-		r.Header.Set("Content-Type", writer.FormDataContentType())
-
+		body, err = r.writeMultiPartFormData()
 	} else if len(r.Form) > 0 {
-		body = strings.NewReader(r.Form.Encode())
-		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		body = r.writeForm()
 	} else if r.JSON != nil {
-		buf := new(bytes.Buffer)
-		err = json.NewEncoder(buf).Encode(r.JSON)
-		if err != nil {
-			return
-		}
-		body = buf
-		r.Header.Set("Content-Type", "application/json")
+		body, err = r.writeJSON()
 	} else if len(r.Body) > 0 {
 		body = bytes.NewReader(r.Body)
+	}
+
+	if err != nil {
+		return
 	}
 
 	req, err = http.NewRequestWithContext(r.Ctx, r.Method, r.URL.String(), body)
