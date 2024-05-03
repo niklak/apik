@@ -1,5 +1,6 @@
 # APIK
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/niklak/apik.svg)](https://pkg.go.dev/github.com/niklak/apik)
 [![Go](https://github.com/niklak/apik/actions/workflows/go.yml/badge.svg)](https://github.com/niklak/apik/actions/workflows/go.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/niklak/apik)](https://goreportcard.com/report/github.com/niklak/apik)
 [![codecov](https://codecov.io/gh/niklak/apik/graph/badge.svg?token=Y8IB5RQ3OP)](https://codecov.io/gh/niklak/apik)
