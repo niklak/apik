@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/niklak/apik/internal/jar"
 	"github.com/niklak/apik/internal/proxy"
 	"github.com/niklak/apik/reqopt"
 	"github.com/niklak/apik/request"
@@ -263,7 +263,7 @@ func TestClient_Files_UnsupportedBodyType(t *testing.T) {
 
 func TestClient_TraceProxy(t *testing.T) {
 
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	//zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
 	// Start a test server that will act as a proxy
 	testServer := httptest.NewServer(http.HandlerFunc(proxy.HttpProxyConnectHandler))
@@ -321,154 +321,6 @@ func TestClient_TraceProxy(t *testing.T) {
 
 	// compare connect done address with the proxy server address
 	assert.Equal(t, address, traceInfo.ConnectDone[0].Address)
-
-}
-
-func TestClient_ClientCookie(t *testing.T) {
-
-	client := New(
-		WithBaseUrl("https://httpbin.org"),
-		WithCookies([]*http.Cookie{
-			{Name: "k", Value: "v", Path: "/"},
-		}),
-	)
-
-	req := request.NewRequest(
-		context.Background(),
-		"/cookies",
-	)
-
-	type httpBinResponse struct {
-		Cookies map[string]string `json:"cookies"`
-	}
-
-	result := new(httpBinResponse)
-	resp, err := client.JSON(req, result)
-
-	assert.NoError(t, err)
-	assert.Equal(t, 200, resp.Raw.StatusCode)
-
-	expectedCookies := map[string]string{"k": "v"}
-	assert.Equal(t, expectedCookies, result.Cookies)
-}
-
-func TestClient_RequestAddCookie(t *testing.T) {
-
-	client := New(WithBaseUrl("https://httpbin.org"))
-
-	req := request.NewRequest(
-		context.Background(),
-		"/cookies",
-		reqopt.AddCookie(&http.Cookie{Name: "k", Value: "v", Path: "/cookies"}),
-	)
-
-	type httpBinResponse struct {
-		Cookies map[string]string `json:"cookies"`
-	}
-
-	result := new(httpBinResponse)
-	_, err := client.JSON(req, result)
-
-	assert.NoError(t, err)
-
-	expectedCookies := map[string]string{"k": "v"}
-	assert.Equal(t, expectedCookies, result.Cookies)
-}
-
-func TestClient_RequestSetCookie(t *testing.T) {
-
-	client := New(WithBaseUrl("https://httpbin.org"))
-
-	req := request.NewRequest(
-		context.Background(),
-		"/cookies",
-		reqopt.SetCookies(
-			[]*http.Cookie{
-				{Name: "k1", Value: "v1", Path: "/cookies"},
-				{Name: "k2", Value: "v2", Path: "/cookies"},
-			},
-		),
-	)
-
-	type httpBinResponse struct {
-		Cookies map[string]string `json:"cookies"`
-	}
-
-	result := new(httpBinResponse)
-	_, err := client.JSON(req, result)
-
-	assert.NoError(t, err)
-
-	expectedCookies := map[string]string{"k1": "v1", "k2": "v2"}
-	assert.Equal(t, expectedCookies, result.Cookies)
-}
-
-func TestClient_CookieIntersection(t *testing.T) {
-
-	// This test demonstrates that request can contain cookies with the same name.
-	// And this is a problem.
-	// At first request cookies will be added to the request, and then jar cookies will be added.
-	// Because request.AddCookie() add a cookie directly into the request header
-	// and jar cookies (client.Jar.Cookies()) are added just before request is sent.
-
-	type briefCookie struct {
-		Name  string `json:"name"`
-		Value string `json:"value"`
-	}
-
-	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		httpCookies := r.Cookies()
-		cookies := make([]briefCookie, 0)
-
-		for _, c := range httpCookies {
-			cookies = append(cookies, briefCookie{Name: c.Name, Value: c.Value})
-		}
-
-		body, err := json.Marshal(cookies)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(body)
-	}))
-
-	defer testServer.Close()
-
-	client := New(WithBaseUrl(testServer.URL), WithCookies([]*http.Cookie{
-		{Name: "k", Value: "client-cookie", Path: "/"},
-	}))
-
-	req := request.NewRequest(
-		context.Background(),
-		"/cookies",
-		reqopt.AddCookie(&http.Cookie{Name: "k", Value: "request-cookie", Path: "/cookies"}),
-	)
-
-	var result []briefCookie
-	_, err := client.JSON(req, &result)
-
-	assert.NoError(t, err)
-
-	expectedCookies := []briefCookie{{Name: "k", Value: "request-cookie"}, {Name: "k", Value: "client-cookie"}}
-	assert.Equal(t, expectedCookies, result)
-
-	// the next request sent without additional cookies
-
-	req = request.NewRequest(
-		context.Background(),
-		"/cookies",
-	)
-
-	var resultNext []briefCookie
-	_, err = client.JSON(req, &resultNext)
-	assert.NoError(t, err)
-
-	expectedCookies = []briefCookie{{Name: "k", Value: "request-cookie"}, {Name: "k", Value: "client-cookie"}}
-
-	assert.Equal(t, expectedCookies, result)
 
 }
 
@@ -637,4 +489,187 @@ func TestClient_NoContext(t *testing.T) {
 	_, err := client.Fetch(req, nil)
 
 	assert.Error(t, err)
+}
+
+func TestClient_ClientCookie(t *testing.T) {
+
+	client := New(
+		WithBaseUrl("https://httpbin.org"),
+		WithCookies([]*http.Cookie{
+			{Name: "k", Value: "v", Path: "/"},
+		}),
+	)
+
+	req := request.NewRequest(
+		context.Background(),
+		"/cookies",
+	)
+
+	type httpBinResponse struct {
+		Cookies map[string]string `json:"cookies"`
+	}
+
+	result := new(httpBinResponse)
+	resp, err := client.JSON(req, result)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 200, resp.Raw.StatusCode)
+
+	expectedCookies := map[string]string{"k": "v"}
+	assert.Equal(t, expectedCookies, result.Cookies)
+}
+
+func TestClient_RequestAddCookie(t *testing.T) {
+
+	client := New(WithBaseUrl("https://httpbin.org"))
+
+	req := request.NewRequest(
+		context.Background(),
+		"/cookies",
+		reqopt.AddCookie(&http.Cookie{Name: "k", Value: "v", Path: "/cookies"}),
+	)
+
+	type httpBinResponse struct {
+		Cookies map[string]string `json:"cookies"`
+	}
+
+	result := new(httpBinResponse)
+	_, err := client.JSON(req, result)
+
+	assert.NoError(t, err)
+
+	expectedCookies := map[string]string{"k": "v"}
+	assert.Equal(t, expectedCookies, result.Cookies)
+}
+
+func TestClient_RequestSetCookie(t *testing.T) {
+
+	client := New(WithBaseUrl("https://httpbin.org"))
+
+	req := request.NewRequest(
+		context.Background(),
+		"/cookies",
+		reqopt.SetCookies(
+			[]*http.Cookie{
+				{Name: "k1", Value: "v1", Path: "/cookies"},
+				{Name: "k2", Value: "v2", Path: "/cookies"},
+			},
+		),
+	)
+
+	type httpBinResponse struct {
+		Cookies map[string]string `json:"cookies"`
+	}
+
+	result := new(httpBinResponse)
+	_, err := client.JSON(req, result)
+
+	assert.NoError(t, err)
+
+	expectedCookies := map[string]string{"k1": "v1", "k2": "v2"}
+	assert.Equal(t, expectedCookies, result.Cookies)
+}
+
+func TestClient_CookieIntersection(t *testing.T) {
+
+	// This test demonstrates that request can contain cookies with the same name.
+	// And this is a problem.
+	// At first request cookies will be added to the request, and then jar cookies will be added.
+	// Because request.AddCookie() add a cookie directly into the request header
+	// and jar cookies (client.Jar.Cookies()) are added just before request is sent.
+
+	type briefCookie struct {
+		Name  string `json:"name"`
+		Value string `json:"value"`
+	}
+
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		httpCookies := r.Cookies()
+		cookies := make([]briefCookie, 0)
+
+		for _, c := range httpCookies {
+			cookies = append(cookies, briefCookie{Name: c.Name, Value: c.Value})
+		}
+
+		body, err := json.Marshal(cookies)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(body)
+	}))
+
+	defer testServer.Close()
+
+	client := New(WithBaseUrl(testServer.URL), WithCookies([]*http.Cookie{
+		{Name: "k", Value: "client-cookie", Path: "/"},
+	}))
+
+	req := request.NewRequest(
+		context.Background(),
+		"/cookies",
+		reqopt.AddCookie(&http.Cookie{Name: "k", Value: "request-cookie", Path: "/cookies"}),
+	)
+
+	var result []briefCookie
+	_, err := client.JSON(req, &result)
+
+	assert.NoError(t, err)
+
+	expectedCookies := []briefCookie{{Name: "k", Value: "request-cookie"}, {Name: "k", Value: "client-cookie"}}
+	assert.Equal(t, expectedCookies, result)
+
+	// the next request sent without additional cookies
+
+	req = request.NewRequest(
+		context.Background(),
+		"/cookies",
+	)
+
+	var resultNext []briefCookie
+	_, err = client.JSON(req, &resultNext)
+	assert.NoError(t, err)
+
+	expectedCookies = []briefCookie{{Name: "k", Value: "request-cookie"}, {Name: "k", Value: "client-cookie"}}
+
+	assert.Equal(t, expectedCookies, result)
+
+}
+
+func TestClient_WithManualCookieJar(t *testing.T) {
+
+	//Must behave like a standard cookie jar and provide logging
+
+	// Setting your own cookie jar manually
+	cj := jar.New()
+	client := New(
+		WithBaseUrl("https://httpbin.org"),
+		WithCookieJar(cj),
+	)
+
+	req := request.NewRequest(
+		context.Background(),
+		"/cookies",
+		reqopt.SetCookies(
+			[]*http.Cookie{
+				{Name: "k1", Value: "v1", Path: "/cookies"},
+				{Name: "k2", Value: "v2", Path: "/cookies"},
+			},
+		),
+	)
+
+	type httpBinResponse struct {
+		Cookies map[string]string `json:"cookies"`
+	}
+
+	result := new(httpBinResponse)
+	_, err := client.JSON(req, result)
+
+	assert.NoError(t, err)
+
+	expectedCookies := map[string]string{"k1": "v1", "k2": "v2"}
+	assert.Equal(t, expectedCookies, result.Cookies)
 }

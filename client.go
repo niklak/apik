@@ -40,6 +40,7 @@ type Client struct {
 	cookies []*http.Cookie
 	header  http.Header
 	baseURL *url.URL
+	jar     http.CookieJar
 }
 
 // Do sends an http.Request built from Request and returns an http.Response
@@ -141,7 +142,9 @@ func New(opts ...ClientOption) *Client {
 		c.c.Timeout = c.timeout
 	}
 
-	if c.c.Jar == nil {
+	if c.jar != nil {
+		c.c.Jar = c.jar
+	} else if c.c.Jar == nil {
 		cookieJar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 		c.c.Jar = cookieJar
 	}
@@ -187,9 +190,10 @@ func WithCookies(cookies []*http.Cookie) ClientOption {
 }
 
 // WithCookieJar sets the cookie jar for the http.Client
+// Also CookieJar can be set with `WithHttpClient` option.
 func WithCookieJar(jar http.CookieJar) ClientOption {
 	return func(c *Client) {
-		c.c.Jar = jar
+		c.jar = jar
 	}
 }
 
