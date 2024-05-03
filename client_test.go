@@ -90,7 +90,7 @@ func TestClient_JSONResponse(t *testing.T) {
 	assert.Equal(t, "https://httpbin.org/post", result.URL)
 }
 
-func TestClient_QueryParams(t *testing.T) {
+func TestClient_AddParam(t *testing.T) {
 
 	type httpBinResponse struct {
 		URL  string              `json:"url"`
@@ -103,9 +103,67 @@ func TestClient_QueryParams(t *testing.T) {
 		context.Background(),
 		"/get",
 		reqopt.AddParam("k", "v1"),
+		// AddParam will append the value to the existing values
 		reqopt.AddParam("k", "v2"),
 	)
 
+	result := new(httpBinResponse)
+	resp, err := client.JSON(req, result)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 200, resp.Raw.StatusCode)
+
+	expectedArgs := map[string][]string{
+		"k": {"v1", "v2"},
+	}
+	assert.Equal(t, expectedArgs, result.Args)
+	assert.Equal(t, "https://httpbin.org/get?k=v1&k=v2", result.URL)
+}
+
+func TestClient_SetParam(t *testing.T) {
+
+	type httpBinResponse struct {
+		URL  string            `json:"url"`
+		Args map[string]string `json:"args"`
+	}
+
+	client := New(WithBaseUrl("https://httpbin.org"), WithTimeout(5*time.Second))
+
+	req := request.NewRequest(
+		context.Background(),
+		"/get",
+		reqopt.SetParam("k", "v1"),
+		// SetParam will overwrite the previous value
+		reqopt.SetParam("k", "v2"),
+	)
+
+	result := new(httpBinResponse)
+	resp, err := client.JSON(req, result)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 200, resp.Raw.StatusCode)
+
+	expectedArgs := map[string]string{
+		"k": "v2",
+	}
+	assert.Equal(t, expectedArgs, result.Args)
+	assert.Equal(t, "https://httpbin.org/get?k=v2", result.URL)
+}
+
+func TestClient_SetParams(t *testing.T) {
+
+	type httpBinResponse struct {
+		URL  string              `json:"url"`
+		Args map[string][]string `json:"args"`
+	}
+
+	client := New(WithBaseUrl("https://httpbin.org"), WithTimeout(5*time.Second))
+
+	req := request.NewRequest(
+		context.Background(),
+		"/get",
+		reqopt.SetParams(url.Values{"k": {"v1", "v2"}}),
+	)
 	result := new(httpBinResponse)
 	resp, err := client.JSON(req, result)
 
@@ -294,7 +352,7 @@ func TestClient_ClientCookie(t *testing.T) {
 	assert.Equal(t, expectedCookies, result.Cookies)
 }
 
-func TestClient_RequestCookie(t *testing.T) {
+func TestClient_RequestAddCookie(t *testing.T) {
 
 	client := New(WithBaseUrl("https://httpbin.org"))
 
@@ -309,12 +367,39 @@ func TestClient_RequestCookie(t *testing.T) {
 	}
 
 	result := new(httpBinResponse)
-	resp, err := client.JSON(req, result)
+	_, err := client.JSON(req, result)
 
 	assert.NoError(t, err)
-	assert.Equal(t, 200, resp.Raw.StatusCode)
 
 	expectedCookies := map[string]string{"k": "v"}
+	assert.Equal(t, expectedCookies, result.Cookies)
+}
+
+func TestClient_RequestSetCookie(t *testing.T) {
+
+	client := New(WithBaseUrl("https://httpbin.org"))
+
+	req := request.NewRequest(
+		context.Background(),
+		"/cookies",
+		reqopt.SetCookies(
+			[]*http.Cookie{
+				{Name: "k1", Value: "v1", Path: "/cookies"},
+				{Name: "k2", Value: "v2", Path: "/cookies"},
+			},
+		),
+	)
+
+	type httpBinResponse struct {
+		Cookies map[string]string `json:"cookies"`
+	}
+
+	result := new(httpBinResponse)
+	_, err := client.JSON(req, result)
+
+	assert.NoError(t, err)
+
+	expectedCookies := map[string]string{"k1": "v1", "k2": "v2"}
 	assert.Equal(t, expectedCookies, result.Cookies)
 }
 
@@ -387,7 +472,7 @@ func TestClient_CookieIntersection(t *testing.T) {
 
 }
 
-func TestClient_PostForm(t *testing.T) {
+func TestClient_AddFormField(t *testing.T) {
 
 	type httpBinResponse struct {
 		Form map[string][]string `json:"form"`
@@ -401,6 +486,58 @@ func TestClient_PostForm(t *testing.T) {
 		reqopt.Method("POST"),
 		reqopt.AddFormField("k", "v1"),
 		reqopt.AddFormField("k", "v2"),
+	)
+
+	result := new(httpBinResponse)
+	resp, err := client.JSON(req, result)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 200, resp.Raw.StatusCode)
+
+	expectedForm := map[string][]string{"k": {"v1", "v2"}}
+	assert.Equal(t, expectedForm, result.Form)
+}
+
+func TestClient_SetFormField(t *testing.T) {
+
+	type httpBinResponse struct {
+		Form map[string]string `json:"form"`
+	}
+
+	client := New(WithBaseUrl("https://httpbin.org"))
+
+	req := request.NewRequest(
+		context.Background(),
+		"/post",
+		reqopt.Method("POST"),
+		reqopt.SetFormField("k", "v1"),
+		// SetFormField will overwrite the previous value
+		reqopt.SetFormField("k", "v2"),
+	)
+
+	result := new(httpBinResponse)
+	resp, err := client.JSON(req, result)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 200, resp.Raw.StatusCode)
+
+	expectedForm := map[string]string{"k": "v2"}
+	assert.Equal(t, expectedForm, result.Form)
+}
+
+func TestClient_SetForm(t *testing.T) {
+
+	type httpBinResponse struct {
+		Form map[string][]string `json:"form"`
+	}
+
+	client := New(WithBaseUrl("https://httpbin.org"))
+
+	req := request.NewRequest(
+		context.Background(),
+		"/post",
+		reqopt.Method("POST"),
+		reqopt.SetForm(url.Values{"k": {"v1", "v2"}}),
 	)
 
 	result := new(httpBinResponse)
