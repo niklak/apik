@@ -90,6 +90,23 @@ func TestClient_JSONResponse(t *testing.T) {
 	assert.Equal(t, "https://httpbin.org/post", result.URL)
 }
 
+func TestClient_JSONUnableDecode(t *testing.T) {
+
+	client := New(WithBaseUrl("https://httpbin.org"), WithTimeout(5*time.Second))
+
+	req := request.NewRequest(
+		context.Background(),
+		"/post",
+		reqopt.Method("POST"),
+	)
+
+	result := ""
+	_, err := client.JSON(req, &result)
+	// json: cannot unmarshal object into Go value of type string
+	assert.Error(t, err)
+
+}
+
 func TestClient_AddParam(t *testing.T) {
 
 	type httpBinResponse struct {
