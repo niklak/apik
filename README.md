@@ -10,6 +10,8 @@ This package is a wrapper over the standard `net/http` package and is intended t
 
 ## Examples
 
+### Post request with form data
+
 ```go
 
 package main
@@ -55,6 +57,12 @@ func main() {
 	fmt.Printf("response: %#v\n", result)
 }
 
-
-
 ```
+
+### JSON request
+
+[sending json](./examples/httpbinjson/main.go)
+
+### Building API wrapper
+
+[api wrapper](./examples/httpbinapi/api.go)
