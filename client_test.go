@@ -569,6 +569,32 @@ func (s *ClientSuite) TestManualCookieJar() {
 
 }
 
+func (s *ClientSuite) TestSendJSON() {
+
+	type httpBinResponse struct {
+		JSON map[string]interface{} `json:"json"`
+	}
+
+	client := New(WithBaseUrl("https://httpbin.org"))
+
+	req := request.NewRequest(
+		context.Background(),
+		"/post",
+		reqopt.Method("POST"),
+		reqopt.SetJSON(map[string]interface{}{"k": "v"}),
+	)
+
+	result := new(httpBinResponse)
+	resp, err := client.JSON(req, result)
+
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), 200, resp.Raw.StatusCode)
+
+	expectedJSON := map[string]interface{}{"k": "v"}
+	assert.Equal(s.T(), expectedJSON, result.JSON)
+
+}
+
 func TestClientSuite(t *testing.T) {
 	suite.Run(t, new(ClientSuite))
 }
@@ -706,29 +732,4 @@ func TestClient_TraceProxy(t *testing.T) {
 	// compare connect done address with the proxy server address
 	assert.Equal(t, address, traceInfo.ConnectDone[0].Address)
 
-}
-
-func TestClient_SendJSON(t *testing.T) {
-
-	type httpBinResponse struct {
-		JSON map[string]interface{} `json:"json"`
-	}
-
-	client := New(WithBaseUrl("https://httpbin.org"))
-
-	req := request.NewRequest(
-		context.Background(),
-		"/post",
-		reqopt.Method("POST"),
-		reqopt.SetJSON(map[string]interface{}{"k": "v"}),
-	)
-
-	result := new(httpBinResponse)
-	resp, err := client.JSON(req, result)
-
-	assert.NoError(t, err)
-	assert.Equal(t, 200, resp.Raw.StatusCode)
-
-	expectedJSON := map[string]interface{}{"k": "v"}
-	assert.Equal(t, expectedJSON, result.JSON)
 }
