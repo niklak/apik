@@ -2,7 +2,6 @@ package apik
 
 import (
 	"context"
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -486,7 +485,7 @@ func (s *ClientSuite) TestRequestSetCookie() {
 	assert.Equal(s.T(), expectedCookies, result.Cookies)
 }
 
-func (s *ClientSuite) TestCookieIntersection() {
+func (s *ClientSuite) TestCookiesIntersection() {
 
 	// This test demonstrates that request can contain cookies with the same name.
 	// And this is a problem.
@@ -529,6 +528,62 @@ func (s *ClientSuite) TestCookieIntersection() {
 	assert.NoError(s.T(), err)
 
 	expectedCookies = map[string][]string{"k": {"request-cookie", "client-cookie"}}
+
+	assert.Equal(s.T(), expectedCookies, result.Cookies)
+}
+
+func (s *ClientSuite) TestCookiesListIntersection() {
+
+	// This test demonstrates that request can contain cookies with the same name.
+	// And this is a problem.
+	// At first, the request cookies will be added to the request  and then jar cookies will be added.
+	// This happens because `request.AddCookie()` adds a cookie directly into the request header
+	// while jar cookies (`client.Jar.Cookies()`) will be added just before sending the request.
+
+	// This is another example of the same problem but with a different approach.
+	// It demonstrates the cookie list order.
+
+	type cookie struct {
+		Name  string `json:"name"`
+		Value string `json:"value"`
+	}
+
+	type httpBinResponse struct {
+		Cookies []*cookie `json:"cookies"`
+	}
+
+	client := New(WithBaseUrl(s.testServer.URL), WithCookies([]*http.Cookie{
+		{Name: "k", Value: "client-cookie", Path: "/"},
+	}))
+
+	req := request.NewRequest(
+		context.Background(),
+		"/cookies-list",
+		reqopt.AddCookie(&http.Cookie{Name: "k", Value: "request-cookie", Path: "/cookies-list"}),
+	)
+
+	result := new(httpBinResponse)
+	_, err := client.JSON(req, &result)
+
+	assert.NoError(s.T(), err)
+
+	expectedCookies := []*cookie{
+		{Name: "k", Value: "request-cookie"},
+		{Name: "k", Value: "client-cookie"},
+	}
+
+	assert.Equal(s.T(), expectedCookies, result.Cookies)
+
+	// the next request sent without additional cookies
+
+	req = request.NewRequest(
+		context.Background(),
+		"/cookies-list",
+	)
+
+	resultNext := new(httpBinResponse)
+	_, err = client.JSON(req, &resultNext)
+	assert.NoError(s.T(), err)
 
 	assert.Equal(s.T(), expectedCookies, result.Cookies)
 }
@@ -597,78 +652,6 @@ func (s *ClientSuite) TestSendJSON() {
 
 func TestClientSuite(t *testing.T) {
 	suite.Run(t, new(ClientSuite))
-}
-
-func TestClient_CookieIntersection(t *testing.T) {
-
-	// This test demonstrates that request can contain cookies with the same name.
-	// And this is a problem.
-	// At first, the request cookies will be added to the request  and then jar cookies will be added.
-	// This happens because `request.AddCookie()` adds a cookie directly into the request header
-	// while jar cookies (`client.Jar.Cookies()`) will be added just before sending the request.
-
-	// This is another example of the same problem but with a different approach.
-	// It demonstrates the cookie list order.
-
-	type briefCookie struct {
-		Name  string `json:"name"`
-		Value string `json:"value"`
-	}
-
-	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		httpCookies := r.Cookies()
-		cookies := make([]briefCookie, 0)
-
-		for _, c := range httpCookies {
-			cookies = append(cookies, briefCookie{Name: c.Name, Value: c.Value})
-		}
-
-		body, err := json.Marshal(cookies)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(body)
-	}))
-
-	defer testServer.Close()
-
-	client := New(WithBaseUrl(testServer.URL), WithCookies([]*http.Cookie{
-		{Name: "k", Value: "client-cookie", Path: "/"},
-	}))
-
-	req := request.NewRequest(
-		context.Background(),
-		"/cookies",
-		reqopt.AddCookie(&http.Cookie{Name: "k", Value: "request-cookie", Path: "/cookies"}),
-	)
-
-	var result []briefCookie
-	_, err := client.JSON(req, &result)
-
-	assert.NoError(t, err)
-
-	expectedCookies := []briefCookie{{Name: "k", Value: "request-cookie"}, {Name: "k", Value: "client-cookie"}}
-	assert.Equal(t, expectedCookies, result)
-
-	// the next request sent without additional cookies
-
-	req = request.NewRequest(
-		context.Background(),
-		"/cookies",
-	)
-
-	var resultNext []briefCookie
-	_, err = client.JSON(req, &resultNext)
-	assert.NoError(t, err)
-
-	expectedCookies = []briefCookie{{Name: "k", Value: "request-cookie"}, {Name: "k", Value: "client-cookie"}}
-
-	assert.Equal(t, expectedCookies, result)
-
 }
 
 func TestClient_TraceProxy(t *testing.T) {

@@ -3,7 +3,7 @@ module github.com/niklak/apik
 go 1.22.1
 
 require (
-	github.com/niklak/httpbulb v0.5.0
+	github.com/niklak/httpbulb v0.6.0
 	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/net v0.25.0
