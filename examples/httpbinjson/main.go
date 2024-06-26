@@ -29,7 +29,7 @@ func main() {
 		panic(err)
 	}
 
-	if resp.Raw.StatusCode != 200 {
+	if resp.StatusCode != 200 {
 		panic("unexpected status code")
 
 	}

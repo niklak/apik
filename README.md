@@ -52,7 +52,7 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Printf("status code: %d\n", resp.Raw.StatusCode)
+	fmt.Printf("status code: %d\n", resp.StatusCode)
 
 	fmt.Printf("response: %#v\n", result)
 }

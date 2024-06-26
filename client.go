@@ -27,9 +27,10 @@ var NewRequest = request.NewRequest
 
 // Response represents a wrapper around http.Response with the result of the request
 type Response struct {
-	Raw     *http.Response
-	Result  any
-	Request *Request
+	Raw        *http.Response
+	Result     any
+	Request    *Request
+	StatusCode int
 }
 
 type Client struct {
@@ -78,7 +79,7 @@ func (c *Client) Fetch(req *request.Request, result any) (resp *Response, err er
 	}
 
 	defer rawResp.Body.Close()
-	resp = &Response{Raw: rawResp}
+	resp = &Response{Raw: rawResp, StatusCode: rawResp.StatusCode}
 
 	if result == nil {
 		result = new(bytes.Buffer)
@@ -109,7 +110,7 @@ func (c *Client) JSON(req *request.Request, result any) (resp *Response, err err
 	}
 
 	defer rawResp.Body.Close()
-	resp = &Response{Raw: rawResp}
+	resp = &Response{Raw: rawResp, StatusCode: rawResp.StatusCode}
 
 	if result == nil {
 		return

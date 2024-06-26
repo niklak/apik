@@ -47,7 +47,7 @@ func (s *ClientSuite) TestFetchDiscard() {
 		io.Discard,
 	)
 	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), 200, resp.Raw.StatusCode)
+	assert.Equal(s.T(), 200, resp.StatusCode)
 }
 
 func (s *ClientSuite) TestFetchString() {
@@ -58,7 +58,7 @@ func (s *ClientSuite) TestFetchString() {
 		&result,
 	)
 	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), 200, resp.Raw.StatusCode)
+	assert.Equal(s.T(), 200, resp.StatusCode)
 	apiURL, _ := url.JoinPath(s.testServer.URL, "/get")
 
 	assert.Contains(s.T(), result, apiURL)
@@ -73,7 +73,7 @@ func (s *ClientSuite) TestFetchBytes() {
 		&result,
 	)
 	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), 200, resp.Raw.StatusCode)
+	assert.Equal(s.T(), 200, resp.StatusCode)
 	apiURL, _ := url.JoinPath(s.testServer.URL, "/get")
 	assert.Contains(s.T(), string(result), apiURL)
 
@@ -94,7 +94,7 @@ func (s *ClientSuite) TestJSONResponse() {
 	resp, err := s.client.JSON(req, result)
 
 	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), 200, resp.Raw.StatusCode)
+	assert.Equal(s.T(), 200, resp.StatusCode)
 	apiURL, _ := url.JoinPath(s.testServer.URL, "/post")
 	assert.Contains(s.T(), result.URL, apiURL)
 
@@ -132,7 +132,7 @@ func (s *ClientSuite) TestAddParam() {
 	resp, err := s.client.JSON(req, result)
 	assert.NoError(s.T(), err)
 
-	assert.Equal(s.T(), 200, resp.Raw.StatusCode)
+	assert.Equal(s.T(), 200, resp.StatusCode)
 	apiURL, _ := url.JoinPath(s.testServer.URL, "/get")
 	assert.Contains(s.T(), result.URL, apiURL)
 
@@ -161,7 +161,7 @@ func (s *ClientSuite) TestSetParam() {
 	resp, err := s.client.JSON(req, result)
 	assert.NoError(s.T(), err)
 
-	assert.Equal(s.T(), 200, resp.Raw.StatusCode)
+	assert.Equal(s.T(), 200, resp.StatusCode)
 	assert.Equal(s.T(), result.URL, s.testServer.URL+"/get?k=v2")
 
 	expectedArgs := map[string][]string{
@@ -188,7 +188,7 @@ func (s *ClientSuite) TestSetParams() {
 	resp, err := s.client.JSON(req, result)
 	assert.NoError(s.T(), err)
 
-	assert.Equal(s.T(), 200, resp.Raw.StatusCode)
+	assert.Equal(s.T(), 200, resp.StatusCode)
 	assert.Equal(s.T(), result.URL, s.testServer.URL+"/get?k=v1&k=v2")
 
 	expectedArgs := map[string][]string{
@@ -221,7 +221,7 @@ func (s *ClientSuite) TestFiles() {
 	resp, err := s.client.JSON(req, result)
 
 	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), 200, resp.Raw.StatusCode)
+	assert.Equal(s.T(), 200, resp.StatusCode)
 
 	expectedFiles := map[string][]string{
 		"file_0": {"test content"},
@@ -296,7 +296,7 @@ func (s *ClientSuite) TestAddFormField() {
 	resp, err := s.client.JSON(req, result)
 
 	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), 200, resp.Raw.StatusCode)
+	assert.Equal(s.T(), 200, resp.StatusCode)
 
 	expectedForm := map[string][]string{"k": {"v1", "v2"}}
 	assert.Equal(s.T(), expectedForm, result.Form)
@@ -323,7 +323,7 @@ func (s *ClientSuite) TestSetFormField() {
 	resp, err := s.client.JSON(req, result)
 
 	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), 200, resp.Raw.StatusCode)
+	assert.Equal(s.T(), 200, resp.StatusCode)
 
 	expectedForm := map[string][]string{"k": {"v2"}}
 	assert.Equal(s.T(), expectedForm, result.Form)
@@ -347,7 +347,7 @@ func (s *ClientSuite) TestSetForm() {
 	resp, err := s.client.JSON(req, result)
 
 	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), 200, resp.Raw.StatusCode)
+	assert.Equal(s.T(), 200, resp.StatusCode)
 
 	expectedForm := map[string][]string{"k": {"v1", "v2"}}
 	assert.Equal(s.T(), expectedForm, result.Form)
@@ -371,7 +371,7 @@ func (s *ClientSuite) TestBody() {
 	resp, err := s.client.JSON(req, result)
 
 	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), 200, resp.Raw.StatusCode)
+	assert.Equal(s.T(), 200, resp.StatusCode)
 
 	assert.Equal(s.T(), "test", result.Data)
 
@@ -393,13 +393,13 @@ func (s *ClientSuite) TestSetHeaders() {
 	resp, err := s.client.JSON(req, result)
 
 	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), 200, resp.Raw.StatusCode)
+	assert.Equal(s.T(), 200, resp.StatusCode)
 
 	assert.Equal(s.T(), "Test", result.Headers["X-Test"][0])
 }
 
 func (s *ClientSuite) TestNoContext() {
-
+	// do not pass a nil Context
 	req := request.NewRequest(nil, "/get")
 
 	_, err := s.client.Fetch(req, nil)
@@ -430,7 +430,7 @@ func (s *ClientSuite) TestClientCookie() {
 	resp, err := client.JSON(req, result)
 
 	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), 200, resp.Raw.StatusCode)
+	assert.Equal(s.T(), 200, resp.StatusCode)
 
 	expectedCookies := map[string][]string{"k": {"v"}}
 	assert.Equal(s.T(), expectedCookies, result.Cookies)
@@ -643,7 +643,7 @@ func (s *ClientSuite) TestSendJSON() {
 	resp, err := client.JSON(req, result)
 
 	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), 200, resp.Raw.StatusCode)
+	assert.Equal(s.T(), 200, resp.StatusCode)
 
 	expectedJSON := map[string]interface{}{"k": "v"}
 	assert.Equal(s.T(), expectedJSON, result.JSON)
