@@ -29,8 +29,7 @@ func main() {
 		reqopt.Header("User-Agent", "apik/0.1"),
 	)
 
-	result := new(httpBinResponse)
-	resp, err := client.JSON(req, result)
+	resp, err := client.JSON(req, &httpBinResponse{})
 
 	if err != nil {
 		panic(err)
@@ -38,5 +37,5 @@ func main() {
 
 	fmt.Printf("status code: %d\n", resp.StatusCode)
 
-	fmt.Printf("response: %#v\n", result)
+	fmt.Printf("response: %#v\n", resp.Result)
 }
